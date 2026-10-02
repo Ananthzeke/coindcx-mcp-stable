@@ -1,8 +1,10 @@
 """MCP 2.x stdio server with explicit schemas and owned HTTP client lifetime."""
 
 import asyncio
+import argparse
 import json
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 from functools import partial
@@ -16,7 +18,7 @@ from mcp.server.stdio import stdio_server
 
 from .client import CoinDCXClient, CoinDCXError
 from .config import Config
-from .tools import build_tools
+from .tools import READ_TOOLS, build_tools
 
 logger = logging.getLogger(__name__)
 TOOLS = {tool.name: tool for tool in build_tools()}
@@ -35,9 +37,11 @@ def make_client() -> CoinDCXClient:
 
 @asynccontextmanager
 async def lifespan(server: Server):
+    # Snapshot access policy for this connection; never trust client-side filtering.
+    read_only = Config().read_only
     client = make_client()
     try:
-        yield {"client": client, "limiter": anyio.CapacityLimiter(4)}
+        yield {"client": client, "limiter": anyio.CapacityLimiter(4), "read_only": read_only}
     finally:
         await anyio.to_thread.run_sync(client.close)
 
@@ -67,8 +71,10 @@ def exchange_failed(data) -> bool:
     return False
 
 
-async def list_tools() -> list[types.Tool]:
-    return list(TOOLS.values())
+async def list_tools(*, read_only: bool | None = None) -> list[types.Tool]:
+    if read_only is None:
+        read_only = Config().read_only
+    return [tool for name, tool in TOOLS.items() if not read_only or name in READ_TOOLS]
 
 
 async def call_tool(
@@ -77,9 +83,14 @@ async def call_tool(
     *,
     api_client: CoinDCXClient,
     limiter: anyio.CapacityLimiter | None = None,
+    read_only: bool | None = None,
 ) -> types.CallToolResult:
     if name not in TOOLS:
         raise MCPError(-32602, "Unknown tool")
+    if read_only is None:
+        read_only = Config().read_only
+    if read_only and name not in READ_TOOLS:
+        return response({"error": "This tool is disabled in read-only portfolio mode"}, error=True)
     try:
         # Reject NaN/Infinity too: Python's JSON parser otherwise accepts them.
         json.dumps(arguments, allow_nan=False)
@@ -108,7 +119,9 @@ async def handle_list_tools(
 ) -> types.ListToolsResult:
     if params is not None and params.cursor is not None:
         raise MCPError(-32602, "This server does not paginate tools")
-    return types.ListToolsResult(tools=await list_tools())
+    return types.ListToolsResult(
+        tools=await list_tools(read_only=ctx.lifespan_context["read_only"])
+    )
 
 
 async def handle_call_tool(
@@ -119,6 +132,7 @@ async def handle_call_tool(
         params.arguments or {},
         api_client=ctx.lifespan_context["client"],
         limiter=ctx.lifespan_context["limiter"],
+        read_only=ctx.lifespan_context["read_only"],
     )
 
 
@@ -138,6 +152,15 @@ async def serve() -> None:
 
 def main() -> None:
     """Synchronous entry point for both the installed command and python -m."""
+    parser = argparse.ArgumentParser(description="CoinDCX MCP stdio server")
+    parser.add_argument(
+        "--read-only",
+        action="store_true",
+        help="Enforce portfolio-only access even if COINDCX_READ_ONLY=false",
+    )
+    args = parser.parse_args()
+    if args.read_only:
+        os.environ["COINDCX_READ_ONLY"] = "true"
     logging.basicConfig(
         level=logging.WARNING,
         stream=sys.stderr,

@@ -16,6 +16,10 @@ class Config:
 
     def __init__(self):
         load_environment()
+        read_only = os.getenv("COINDCX_READ_ONLY", "true").strip().lower()
+        if read_only not in {"true", "false"}:
+            raise ValueError("COINDCX_READ_ONLY must be true or false")
+        self.read_only = read_only == "true"
         self.api_key = os.getenv("COINDCX_API_KEY", "")
         self.secret_key = os.getenv("COINDCX_SECRET_KEY", "")
         self.base_url = os.getenv("COINDCX_BASE_URL", "https://api.coindcx.com")

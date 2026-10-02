@@ -67,6 +67,7 @@ def test_real_stdio_entrypoints_without_credentials(mode, entry, tmp_path):
             "COINDCX_API_KEY": "",
             "COINDCX_SECRET_KEY": "",
             "COINDCX_SANDBOX_MODE": "false",
+            "COINDCX_READ_ONLY": "false",
             "COINDCX_BASE_URL": "https://api.coindcx.com",
             "COINDCX_PUBLIC_BASE_URL": "https://public.coindcx.com",
         },

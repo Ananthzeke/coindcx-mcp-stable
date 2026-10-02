@@ -1,6 +1,6 @@
 # CoinDCX MCP Server
 
-CoinDCX spot and futures tools for MCP assistants. Requires Python 3.10+ and uses the stable MCP Python SDK 2.2.0. All 41 existing tool names are retained. Based on [ayagup/coindcx-mcp](https://github.com/ayagup/coindcx-mcp).
+CoinDCX spot and futures tools for MCP assistants. Requires Python 3.10+ and uses the stable MCP Python SDK 2.2.0. Read-only portfolio access is the default; all 41 existing tool names are retained for explicitly enabled trading connections. Based on [ayagup/coindcx-mcp](https://github.com/ayagup/coindcx-mcp).
 
 ## Install and run
 
@@ -17,6 +17,16 @@ uv run --locked --no-dev coindcx-mcp
 
 Public market tools work without credentials. For account and trading tools, set `COINDCX_API_KEY` and `COINDCX_SECRET_KEY` in `.env` or your process environment. Generate keys through your CoinDCX account and give them only the permissions you intend to use.
 
+## Portfolio-only access
+
+`COINDCX_READ_ONLY` defaults to `true`. In this mode, discovery exposes the 27 explicitly allowlisted account-reading and market-data tools. Trading, cancellations, leverage/margin changes, position exits, and transfers are blocked before API dispatch, even if a client manually calls a hidden tool. Access policy stays fixed for each server connection.
+
+Use `./scripts/run-portfolio.sh` for ChatGPT. It always enforces read-only access, including when your environment or `.env` has `COINDCX_READ_ONLY=false`. It runs the installed server from the project's `.venv` and works from any working directory. Install with `uv sync --locked` first.
+
+For a separate trading connection, deliberately set `COINDCX_READ_ONLY=false` and run the normal `coindcx-mcp` command without `--read-only`. Values other than `true` or `false` fail startup. The client library itself is not an access boundary; this policy applies to MCP tool discovery and execution.
+
+See [ChatGPT connection setup](docs/chatgpt.md) for the private Secure MCP Tunnel connection. The GitHub repository URL is source code, not an MCP endpoint.
+
 The server loads `.env` beside the source project, regardless of the launching client's working directory. `COINDCX_ENV_FILE` selects an explicit file, which is useful for an installed wheel. Process environment values take precedence, including explicitly empty values. Existing credentials are never overwritten by installation.
 
 ## Connect an MCP client
@@ -28,7 +38,7 @@ For clients that accept an `mcpServers` configuration, use an absolute project p
   "mcpServers": {
     "coindcx": {
       "command": "uv",
-      "args": ["--directory", "/absolute/path/to/coindcx-mcp", "run", "--locked", "--no-dev", "coindcx-mcp"]
+      "args": ["--directory", "/absolute/path/to/coindcx-mcp", "run", "--locked", "--no-dev", "coindcx-mcp", "--read-only"]
     }
   }
 }
@@ -83,7 +93,7 @@ uv run --locked ruff format --check .
 uv build
 ```
 
-Tests mock exchange traffic and isolate environment files. They cover all 41 endpoint contracts, signed GET/POST requests, schemas, errors, retries, public access without keys, client shutdown, event-loop responsiveness, and current/legacy MCP stdio connections. `uv run --locked python test_server.py` runs the same offline suite.
+Tests mock exchange traffic and isolate environment files. They cover all 41 endpoint contracts, signed GET/POST requests, schemas, errors, retries, public access without keys, client shutdown, event-loop responsiveness, and current/legacy MCP stdio connections. Portfolio tests verify discovery filtering, every blocked mutation, account reads, fixed connection policy, and enforced read-only launches. `uv run --locked python test_server.py` runs the same offline suite.
 
 The GitHub workflow runs these checks on Python 3.10–3.14. Preserve `uv.lock` and use `--locked` for reproducible installations. Review dependency upgrades deliberately and rerun the suite before adopting them.
 
