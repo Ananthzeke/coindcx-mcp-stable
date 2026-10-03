@@ -21,6 +21,26 @@ For local clients using shared Codex configuration, an equivalent declaration is
 command = "/absolute/path/to/coindcx-mcp/scripts/run-portfolio.sh"
 ```
 
+## Optional bounded spot trading connection
+
+Keep **CoinDCX Portfolio** connected for analysis. Add a second local STDIO server named **CoinDCX Spot Trading** with the absolute command `scripts/run-spot-trading.sh`. Its 30 tools comprise the 27 portfolio tools plus `preview_spot_order`, `create_order`, and `cancel_order`. The launcher forces INR spot limit orders only, with at most ₹500 of value at the entered limit price per new order. A preview returns a one-time token for the exact order inputs; the live call must use it within 15 minutes. This cap does not limit the value of an existing order that can be cancelled.
+
+Require desktop approval for `create_order` and `cancel_order`. For clients using the shared Codex configuration:
+
+```toml
+[mcp_servers.coindcx_spot_trading]
+command = "/absolute/path/to/coindcx-mcp/scripts/run-spot-trading.sh"
+default_tools_approval_mode = "writes"
+
+[mcp_servers.coindcx_spot_trading.tools.create_order]
+approval_mode = "approve"
+
+[mcp_servers.coindcx_spot_trading.tools.cancel_order]
+approval_mode = "approve"
+```
+
+Restart the desktop app after adding the server. Review each order preview and the app's approval prompt carefully. The CoinDCX key itself is not read-only or permission-scoped; the launcher and approval settings enforce the narrower desktop workflow. Enabling this connection does not place a trade.
+
 ## ChatGPT website connection
 
 ChatGPT web does not read local Codex configuration. Its MCP connection needs a reachable HTTPS endpoint or a Secure MCP Tunnel. The current server has no HTTP transport or OAuth service. A website connection without an OpenAI API key requires adding an authenticated HTTPS transport and hosting or forwarding it. The optional OpenAI tunnel route below requires a runtime API key; it is not needed for the desktop route.

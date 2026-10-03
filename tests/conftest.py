@@ -10,5 +10,7 @@ def isolate_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("COINDCX_SANDBOX_MODE", "false")
     # Existing endpoint contract tests deliberately cover all 41 tools.
     monkeypatch.setenv("COINDCX_READ_ONLY", "false")
+    monkeypatch.delenv("COINDCX_ACCESS_MODE", raising=False)
+    monkeypatch.delenv("COINDCX_MAX_SPOT_ORDER_INR", raising=False)
     monkeypatch.delenv("COINDCX_BASE_URL", raising=False)
     monkeypatch.delenv("COINDCX_PUBLIC_BASE_URL", raising=False)

@@ -15,7 +15,7 @@ uv run --locked --no-dev coindcx-mcp
 
 `./install.sh` installs from the lockfile and creates `.env` only if it is absent. The server uses stdio: it waits for an MCP client and writes protocol messages to stdout. Logging goes to stderr. `uv run --locked --no-dev python -m coindcx_mcp.server` is an equivalent entry point.
 
-Public market tools work without credentials. For account and trading tools, set `COINDCX_API_KEY` and `COINDCX_SECRET_KEY` in `.env` or your process environment. Generate keys through your CoinDCX account and give them only the permissions you intend to use.
+Public market tools work without credentials. For account and trading tools, set `COINDCX_API_KEY` and `COINDCX_SECRET_KEY` in `.env` or your process environment. CoinDCX says its API keys are not permission-scoped, so guard access through the server mode and protect the key carefully.
 
 ## Portfolio-only access
 
@@ -23,7 +23,9 @@ Public market tools work without credentials. For account and trading tools, set
 
 Use `./scripts/run-portfolio.sh` for ChatGPT. It always enforces read-only access, including when your environment or `.env` has `COINDCX_READ_ONLY=false`. It runs the installed server from the project's `.venv` and works from any working directory. Install with `uv sync --locked` first.
 
-For a separate trading connection, deliberately set `COINDCX_READ_ONLY=false` and run the normal `coindcx-mcp` command without `--read-only`. Values other than `true` or `false` fail startup. The client library itself is not an access boundary; this policy applies to MCP tool discovery and execution.
+For a separate, bounded spot trading connection, use `./scripts/run-spot-trading.sh`. It exposes the 27 read tools plus `preview_spot_order`, `create_order`, and `cancel_order`. It only accepts INR spot limit orders, and the value at the entered limit price must be at most ₹500. A live order needs a one-time preview token with the exact same side, market, price, and quantity, used within 15 minutes. The token is consumed before the exchange call; if the response is uncertain, check order status before creating another preview. Cancellation uses the existing order ID and is not subject to the new-order value cap. Configure the desktop app to require approval for `create_order` and `cancel_order`; see [ChatGPT connection setup](docs/chatgpt.md). No live trade is part of the automated tests.
+
+The broad `COINDCX_READ_ONLY=false` mode still exists for compatibility with the original 41 tools. It permits futures and transfer tools, so do not use that mode for a bounded spot connection. `COINDCX_ACCESS_MODE=spot` selects the spot profile, while `--spot-trading` and its launcher force it even if `.env` requests another mode. The client library itself is not an access boundary; this policy applies to MCP tool discovery and execution.
 
 See [ChatGPT connection setup](docs/chatgpt.md) for a direct desktop connection without an OpenAI API key, or an optional private Secure MCP Tunnel connection. The GitHub repository URL is source code, not an MCP endpoint.
 
@@ -53,6 +55,7 @@ The SDK supports both current discovery connections and legacy initialize connec
 | Spot market data | `get_ticker`, `get_markets`, `get_market_details`, `get_trades`, `get_order_book`, `get_candles` |
 | Spot account | `get_balances`, `get_user_info`, `get_order_status`, `get_active_orders`, `get_order_history` |
 | Spot orders | `create_order`, `cancel_order` |
+| Bounded spot preview | `preview_spot_order` (spot mode only) |
 | Futures market data | `get_futures_active_instruments`, `get_futures_instrument_details`, `get_futures_instrument_trades`, `get_futures_instrument_orderbook`, `get_futures_instrument_candlesticks`, `get_futures_current_prices_rt` |
 | Futures account | `get_futures_orders`, `list_futures_positions`, `get_futures_positions_by_filter`, `get_futures_currency_conversion`, `get_futures_cross_margin_details`, `get_futures_pair_stats`, `get_futures_trades`, `get_futures_transactions`, `get_futures_wallet_details`, `get_futures_wallet_transactions` |
 | Futures orders and positions | `create_futures_order`, `cancel_futures_order`, `edit_futures_order`, `create_futures_tpsl`, `exit_futures_position`, `cancel_all_futures_open_orders`, `cancel_all_futures_open_orders_for_position`, `change_futures_position_margin_type`, `update_futures_position_leverage`, `add_futures_margin`, `remove_futures_margin` |
@@ -93,7 +96,7 @@ uv run --locked ruff format --check .
 uv build
 ```
 
-Tests mock exchange traffic and isolate environment files. They cover all 41 endpoint contracts, signed GET/POST requests, schemas, errors, retries, public access without keys, client shutdown, event-loop responsiveness, and current/legacy MCP stdio connections. Portfolio tests verify discovery filtering, every blocked mutation, account reads, fixed connection policy, and enforced read-only launches. `uv run --locked python test_server.py` runs the same offline suite.
+Tests mock exchange traffic and isolate environment files. They cover all 41 endpoint contracts, signed GET/POST requests, schemas, errors, retries, public access without keys, client shutdown, event-loop responsiveness, and current/legacy MCP stdio connections. Portfolio tests verify discovery filtering, every blocked mutation, account reads, fixed connection policy, and enforced read-only launches. Spot tests verify the order cap, exact one-time preview, disallowed operations, and enforced spot launcher. `uv run --locked python test_server.py` runs the same offline suite.
 
 The GitHub workflow runs these checks on Python 3.10–3.14. Preserve `uv.lock` and use `--locked` for reproducible installations. Review dependency upgrades deliberately and rerun the suite before adopting them.
 
