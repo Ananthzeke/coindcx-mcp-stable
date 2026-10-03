@@ -1,6 +1,31 @@
 # Connect CoinDCX Portfolio to ChatGPT
 
-The server runs locally over stdio. OpenAI's [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) supports this transport without exposing a public server port. ChatGPT receives the account data returned by tools it calls. This connection is for your own workspace.
+The server runs locally over stdio. A desktop MCP connection does not require an OpenAI API key or a hosted server. OpenAI's [MCP configuration documentation](https://learn.chatgpt.com/docs/extend/mcp) describes direct desktop connections. Your ChatGPT account's normal access and usage limits still apply.
+
+ChatGPT receives the account data returned by tools it calls. Configure only your own account credentials and keep the read-only launcher enabled.
+
+## Desktop connection without an OpenAI API key
+
+1. Install this project with `uv sync --locked` and configure the CoinDCX credentials in the local `.env`.
+2. In the ChatGPT desktop app, open **Settings → MCP servers → Add server**.
+3. Name it **CoinDCX Portfolio** and choose **STDIO**.
+4. Use the absolute path to `scripts/run-portfolio.sh` as its command. No arguments are required. This launcher works regardless of the app's working directory and enforces read-only access.
+5. Save the server and select **Restart**. Use `/mcp` in the composer to check the connection. Confirm discovery shows 27 read-only tools.
+
+CoinDCX account tools still require `COINDCX_API_KEY` and `COINDCX_SECRET_KEY`. These authenticate to the exchange; they are separate from OpenAI API credentials. No OpenAI key file or tunnel is needed for the direct desktop connection.
+
+For local clients using shared Codex configuration, an equivalent declaration is:
+
+```toml
+[mcp_servers.coindcx_portfolio]
+command = "/absolute/path/to/coindcx-mcp/scripts/run-portfolio.sh"
+```
+
+## ChatGPT website connection
+
+ChatGPT web does not read local Codex configuration. Its MCP connection needs a reachable HTTPS endpoint or a Secure MCP Tunnel. The current server has no HTTP transport or OAuth service. A website connection without an OpenAI API key requires adding an authenticated HTTPS transport and hosting or forwarding it. The optional OpenAI tunnel route below requires a runtime API key; it is not needed for the desktop route.
+
+OpenAI's [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) supports stdio without exposing a public server port. This connection is for your own workspace.
 
 ## Prepare the server
 

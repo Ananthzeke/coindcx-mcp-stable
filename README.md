@@ -25,7 +25,7 @@ Use `./scripts/run-portfolio.sh` for ChatGPT. It always enforces read-only acces
 
 For a separate trading connection, deliberately set `COINDCX_READ_ONLY=false` and run the normal `coindcx-mcp` command without `--read-only`. Values other than `true` or `false` fail startup. The client library itself is not an access boundary; this policy applies to MCP tool discovery and execution.
 
-See [ChatGPT connection setup](docs/chatgpt.md) for the private Secure MCP Tunnel connection. The GitHub repository URL is source code, not an MCP endpoint.
+See [ChatGPT connection setup](docs/chatgpt.md) for a direct desktop connection without an OpenAI API key, or an optional private Secure MCP Tunnel connection. The GitHub repository URL is source code, not an MCP endpoint.
 
 The server loads `.env` beside the source project, regardless of the launching client's working directory. `COINDCX_ENV_FILE` selects an explicit file, which is useful for an installed wheel. Process environment values take precedence, including explicitly empty values. Existing credentials are never overwritten by installation.
 
