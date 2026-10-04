@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Paper lab · Forecast evaluation</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#20304a;background:#f3f6fa;font-size:14px;color-scheme:light}
+    *{box-sizing:border-box}body{margin:0}main{max-width:1280px;margin:auto;padding:30px 24px 60px}
+    header,.row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    header{margin-bottom:28px}.eyebrow{font-size:11px;letter-spacing:.15em;font-weight:750;color:#637898}h1{margin:8px 0;font-size:32px;letter-spacing:-1px}h2{font-size:19px;margin:0 0 8px}p{color:#627089;line-height:1.6;margin:6px 0}
+    .badge{border-radius:100px;background:#e4edf8;color:#365780;padding:8px 14px;font-size:12px;font-weight:700}
+    button,.link{border:1px solid #ced8e6;background:white;border-radius:9px;padding:10px 14px;cursor:pointer;color:#20304a;font:inherit;text-decoration:none}
+    button:hover,.link:hover{background:#edf2f9}button:disabled{opacity:.5;cursor:wait}:focus-visible{outline:3px solid #778cf5;outline-offset:3px}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
+    .panel,.card{background:#fff;border:1px solid #e1e7ef;border-radius:14px;padding:22px}.panel{margin-top:18px}.label{font-size:12px;font-weight:650;color:#63728a}.value{font-size:29px;font-weight:730;letter-spacing:-1px;margin:12px 0 6px}.detail{font-size:12px;color:#718097;line-height:1.5}
+    .positive{color:#16755f}.negative{color:#b74654}.notice{background:#e9effa;border:1px solid #d4def3;border-radius:10px;padding:12px 16px;color:#405778;line-height:1.6}.notice.error{background:#fff0f1;border-color:#f3cdd2;color:#98424e}
+    .grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}.table-scroll{overflow:auto;margin-top:16px}table{border-collapse:collapse;width:100%;text-align:left;white-space:nowrap}th{font-size:11px;color:#77839a;font-weight:650;padding:12px 10px;border-bottom:1px solid #e3eaf4}td{padding:14px 10px;border-bottom:1px solid #edf1f7;font-size:13px}td:first-child{font-weight:650}small{display:block;color:#7e8da3;font-size:11px;max-width:360px;white-space:normal;margin-top:5px;line-height:1.5}.empty{text-align:center;color:#8291a6;padding:32px}
+    .chart{width:100%;height:180px;margin-top:12px}.chart text{fill:#7787a0;font-size:11px}.assumptions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.assumptions strong{display:block;font-size:13px;margin-bottom:4px}.muted{color:#7d8ba2}.score{font-size:24px;font-weight:720;margin:5px 0 16px}.foot{font-size:12px;line-height:1.7;margin-top:24px;color:#7b89a0}
+    @media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+    @media(max-width:480px){main{padding:20px 12px}.panel,.card{padding:16px}h1{font-size:27px}.value{font-size:25px}.cards{gap:10px}}
+  </style>
+  <script src="/app.js" defer></script>
+</head>
+<body><main>
+  <header><div><div class="eyebrow">YOUR LOCAL EXPERIMENT</div><h1>Paper lab<span style="color:#7189df">.</span></h1><p>Futures forecasts, simulated trades, and an honest scorecard.</p></div><div class="actions"><span class="badge">SIMULATION · NO REAL ORDERS</span><a class="link" href="http://127.0.0.1:8000/" target="_blank" rel="noopener">Forecast studio ↗</a></div></header>
+  <div class="row"><span id="status" class="muted" role="status">Connecting to the paper agent…</span><div class="actions"><a href="/trades.csv" download="paper-trades.csv" class="link">Export trade history</a><button id="pause" disabled>Pause new paper trades</button></div></div>
+  <div id="error" class="notice error" role="alert" hidden></div>
+  <section class="cards" aria-label="Paper account overview">
+    <article class="card"><div class="label" title="Virtual cash plus simulated position value, less estimated closing costs.">Virtual equity · USDT</div><div class="value" id="equity">—</div><div class="detail" id="equity-detail">No money is deposited or withdrawn</div></article>
+    <article class="card"><div class="label" title="Change in virtual equity from the starting balance, after simulated costs.">Simulated return</div><div class="value" id="return">—</div><div class="detail" id="return-detail">Waiting for the first observation</div></article>
+    <article class="card"><div class="label" title="Largest observed decline in equity from an earlier high. Polling can miss changes between observations.">Maximum drawdown</div><div class="value" id="drawdown">—</div><div class="detail" id="risk-detail">Observed at the polling interval</div></article>
+    <article class="card"><div class="label">Closed paper trades</div><div class="value" id="trade-count">—</div><div class="detail" id="win-rate">Win rate appears after a position closes</div></article>
+  </section>
+  <div class="grid">
+    <section class="panel"><div class="row"><div><h2>Virtual equity over time</h2><p>Includes spread, slippage, fees, and estimated funding.</p></div><span class="badge" id="exposure">1× exposure</span></div><svg id="chart" class="chart" viewBox="0 0 700 180" role="img" aria-label="Observed virtual equity history"></svg><div class="detail" id="costs">Waiting for account data</div></section>
+    <section class="panel"><h2>Does the forecast beat a baseline?</h2><p title="Mean absolute percentage error compares predictions with later completed candles. Lower is better. Overlapping windows are not independent.">Forward forecast error · lower is better</p><div class="assumptions"><div><div class="label">TimesFM</div><div class="score" id="model-error">—</div></div><div><div class="label">Repeat last price</div><div class="score" id="baseline-error">—</div></div></div><div class="detail" id="score-detail">Results need future candles. These windows overlap.</div><p class="detail">Forecast accuracy and trading profitability are different measurements.</p></section>
+  </div>
+  <section class="panel"><div class="row"><div><h2>Latest futures forecasts</h2><p id="settings">New forecasts run only after a completed candle changes.</p></div><span class="badge" id="cadence">GPU model</span></div><div class="table-scroll"><table><thead><tr><th>Market</th><th>Last completed close</th><th>Predicted close</th><th title="Uncalibrated model quantiles; not guaranteed confidence or a probability of profit.">Final P10–P90</th><th>Paper decision</th><th>Last inference / latest check</th></tr></thead><tbody id="signals"><tr><td class="empty" colspan="6">Waiting for valid futures observations and the local model.</td></tr></tbody></table></div></section>
+  <section class="panel"><h2>Open simulated positions</h2><p>One position per market. Exits use the next observed executable quote.</p><div class="table-scroll"><table><thead><tr><th>Market</th><th>Direction</th><th>Entry</th><th>Current exit estimate</th><th>Unrealized P&amp;L</th><th>Scheduled exit</th></tr></thead><tbody id="positions"></tbody></table></div></section>
+  <section class="panel"><h2>Trade journal</h2><p>Most recent 100 paper trades. Export includes the full history.</p><div class="table-scroll"><table><thead><tr><th>Market</th><th>Direction</th><th>Opened</th><th>Closed</th><th>Net P&amp;L · USDT</th><th>Exit reason</th></tr></thead><tbody id="trades"></tbody></table></div></section>
+  <section class="panel"><h2>Simulation assumptions</h2><div class="assumptions" id="assumptions"></div><p class="detail">Paper fills assume available liquidity at the best quote plus slippage. Contract rounding, market impact, exchange liquidation, and exact funding schedules are not reproduced. Stops can be missed between checks; stale or missing quotes prevent fills. During downtime positions stay open until the next valid quote.</p></section>
+  <p class="foot">Private model evaluation only. TimesFM 3.0 weights carry a non-commercial, non-production license. No exchange account keys are loaded by this agent. Past simulated results do not establish live performance.</p>
+</main></body></html>

@@ -23,6 +23,7 @@ packages = ["coindcx_mcp"]
 
 [project.scripts]
 coindcx-mcp = "coindcx_mcp.server:main"
+coindcx-paper-agent = "coindcx_mcp.paper_agent:main"
 
 [dependency-groups]
 dev = ["pytest>=8.3,<10", "ruff>=0.15,<0.16"]

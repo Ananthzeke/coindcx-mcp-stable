@@ -2,6 +2,8 @@
 
 CoinDCX spot and futures tools for MCP assistants. Requires Python 3.10+ and uses the stable MCP Python SDK 2.2.0. Read-only portfolio access is the default; all 41 existing tool names are retained for explicitly enabled trading connections. Based on [ayagup/coindcx-mcp](https://github.com/ayagup/coindcx-mcp).
 
+The optional [local paper forecasting agent](docs/paper-agent.md) evaluates the running TimesFM model on CoinDCX futures prices, with simulated long/short positions, a virtual ledger, performance tracking, and a desktop dashboard. Start it with `./scripts/run-paper-agent.sh` and open `http://127.0.0.1:8011`. It uses no exchange account credentials or OpenAI API key and does not place real orders.
+
 ## Install and run
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
